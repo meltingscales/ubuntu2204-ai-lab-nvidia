@@ -29,11 +29,12 @@ check_if_already_run() {
     
     local already_installed=0
     
-    if package_installed "build-essential" && package_installed "python3-dev" && command -v node >/dev/null 2>&1; then
+    if package_installed "build-essential" && package_installed "python3-dev" && command -v node >/dev/null 2>&1 && command -v uv >/dev/null 2>&1; then
         warn "Core dependencies appear to already be installed"
         info "✓ build-essential found"
         info "✓ python3-dev found" 
         info "✓ Node.js found ($(node --version))"
+        info "✓ uv found ($(uv --version))"
         already_installed=1
     fi
     
@@ -96,6 +97,7 @@ install_basic_dependencies() {
 install_python_stack() {
     log "Installing Python development stack..."
     
+    # Install system Python and development tools
     sudo apt install -y \
         python3 \
         python3-dev \
@@ -110,6 +112,67 @@ install_python_stack() {
     python3 -m pip install --user --upgrade setuptools wheel
     
     log "Python stack installed"
+}
+
+install_uv() {
+    log "Installing uv (modern Python package manager)..."
+    
+    # Check if uv is already available
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    if command -v uv >/dev/null 2>&1; then
+        info "uv is already installed"
+        info "uv version: $(uv --version)"
+        return 0
+    fi
+    
+    # Create installation directory
+    mkdir -p "$HOME/.local/bin"
+    
+    # Install uv using the official installer
+    info "Downloading and installing uv..."
+    export UV_INSTALL_DIR="$HOME/.local/bin"
+    
+    # Install with explicit directory
+    if curl -LsSf https://astral.sh/uv/install.sh | sh; then
+        info "uv installer completed"
+    else
+        error "uv installer failed"
+        return 1
+    fi
+    
+    # Handle snap environment - find and move uv if needed
+    if [ ! -f "$HOME/.local/bin/uv" ]; then
+        info "Looking for uv in alternative locations..."
+        
+        # Check common snap locations
+        for snap_dir in "$HOME"/snap/*/.*; do
+            if [ -f "$snap_dir/bin/uv" ]; then
+                info "Found uv in snap directory: $snap_dir/bin/uv"
+                cp "$snap_dir/bin/uv" "$HOME/.local/bin/uv"
+                [ -f "$snap_dir/bin/uvx" ] && cp "$snap_dir/bin/uvx" "$HOME/.local/bin/uvx"
+                chmod +x "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" 2>/dev/null
+                break
+            fi
+        done
+        
+        # Check cargo location
+        if [ ! -f "$HOME/.local/bin/uv" ] && [ -f "$HOME/.cargo/bin/uv" ]; then
+            info "Found uv in cargo directory"
+            cp "$HOME/.cargo/bin/uv" "$HOME/.local/bin/uv"
+            [ -f "$HOME/.cargo/bin/uvx" ] && cp "$HOME/.cargo/bin/uvx" "$HOME/.local/bin/uvx"
+            chmod +x "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" 2>/dev/null
+        fi
+    fi
+    
+    # Verify installation
+    export PATH="$HOME/.local/bin:$PATH"
+    if command -v uv >/dev/null 2>&1; then
+        log "uv installed successfully"
+        info "uv version: $(uv --version)"
+    else
+        error "uv installation failed - binary not accessible"
+        return 1
+    fi
 }
 
 install_nodejs() {
@@ -194,10 +257,16 @@ install_optional_tools() {
 configure_environment() {
     log "Configuring environment..."
     
-    # Add local bin to PATH if not already there
+    # Add local bin to PATH if not already there (priority location for uv)
     if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
         info "Added ~/.local/bin to PATH in .bashrc"
+    fi
+    
+    # Add cargo bin as fallback for uv
+    if ! echo "$PATH" | grep -q "$HOME/.cargo/bin"; then
+        echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$HOME/.bashrc"
+        info "Added ~/.cargo/bin to PATH in .bashrc"
     fi
     
     # Create ai-tools directory
@@ -214,6 +283,7 @@ verify_installation() {
     info "  Kernel: $(uname -r)"
     info "  Python: $(python3 --version)"
     info "  pip: $(python3 -m pip --version | cut -d' ' -f2)"
+    info "  uv: $(uv --version 2>/dev/null || echo 'Not available')"
     info "  Node.js: $(node --version)"
     info "  npm: $(npm --version)"
     info "  Git: $(git --version)"
@@ -229,6 +299,7 @@ main() {
     update_system
     install_basic_dependencies
     install_python_stack
+    install_uv
     install_nodejs
     install_multimedia_libs
     install_ai_ml_dependencies

@@ -23,11 +23,14 @@ This repository contains scripts to set up ComfyUI, Ollama, and OpenWebUI on Ubu
 
 ### Dependencies Script (`setup_dependencies.sh`)
 - System packages and build tools
-- Python 3.x development stack
+- Python 3.10 development stack
+- **uv** - Modern Python package and project manager
 - Node.js LTS and npm
 - Multimedia libraries (FFmpeg, OpenCV, etc.)
 - AI/ML system dependencies (BLAS, LAPACK, etc.)
 - Development tools (git, curl, vim, etc.)
+
+**Note**: `uv` automatically manages Python versions (including 3.11+ for OpenWebUI) without affecting system Python.
 
 ### AI Tools Script (`setup_ai_tools.sh`)
 - **ComfyUI**: Node-based stable diffusion GUI
@@ -101,7 +104,7 @@ http://localhost:8080
 ### ComfyUI Issues
 - Check Python virtual environment: `~/ai-tools/ComfyUI/venv/bin/python --version`
 - Update ComfyUI: `cd ~/ai-tools/ComfyUI && git pull`
-- Reinstall dependencies: `cd ~/ai-tools/ComfyUI && source venv/bin/activate && pip install -r requirements.txt`
+- Reinstall dependencies: `cd ~/ai-tools/ComfyUI && source venv/bin/activate && uv pip install -r requirements.txt`
 
 ### Ollama Issues
 - Check service: `sudo systemctl status ollama`
@@ -140,3 +143,5 @@ The current setup installs CPU-only versions. For GPU acceleration:
 - At least 8GB RAM (16GB recommended)
 - 20GB free disk space
 - Internet connection for downloads
+
+**Note**: All Python version requirements are automatically managed by `uv` - no manual Python version management needed!

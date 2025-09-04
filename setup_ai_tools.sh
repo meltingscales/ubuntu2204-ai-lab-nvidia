@@ -97,6 +97,9 @@ check_if_already_installed() {
 check_requirements() {
     log "Checking system requirements..."
     
+    # Ensure PATH includes both possible uv locations
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    
     if ! command -v python3 &> /dev/null; then
         error "Python3 is not installed. Please run ./setup_dependencies.sh first"
         exit 1
@@ -119,6 +122,11 @@ check_requirements() {
     
     if ! command -v node &> /dev/null; then
         error "Node.js is not installed. Please run ./setup_dependencies.sh first"
+        exit 1
+    fi
+    
+    if ! command -v uv &> /dev/null; then
+        error "uv is not installed. Please run ./setup_dependencies.sh first"
         exit 1
     fi
     
@@ -148,14 +156,22 @@ install_comfyui() {
     cd ComfyUI
     
     if [ ! -d "venv" ]; then
-        python3 -m venv venv
+        info "Creating Python environment for ComfyUI using uv..."
+        uv venv venv
     fi
     
     source venv/bin/activate
     
-    pip install --upgrade pip
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    pip install -r requirements.txt
+    # Install PyTorch CPU version
+    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    
+    # Install ComfyUI requirements
+    if [ -f "requirements.txt" ]; then
+        uv pip install -r requirements.txt
+    else
+        # Install common ComfyUI dependencies if requirements.txt doesn't exist
+        uv pip install pillow numpy opencv-python psutil scipy tqdm
+    fi
     
     deactivate
     
@@ -294,16 +310,15 @@ install_openwebui() {
         rm -rf "open-webui"
     fi
     
-    # Install OpenWebUI using pip instead of git clone
+    # Install OpenWebUI using uv with Python 3.11+
     if [ ! -d "openwebui-env" ]; then
-        python3 -m venv openwebui-env
+        info "Creating Python 3.11+ environment for OpenWebUI using uv..."
+        uv venv openwebui-env --python 3.11
     fi
     
+    # Activate the environment and install OpenWebUI
     source openwebui-env/bin/activate
-    
-    pip install --upgrade pip
-    pip install open-webui
-    
+    uv pip install open-webui
     deactivate
     
     # Create launcher script
