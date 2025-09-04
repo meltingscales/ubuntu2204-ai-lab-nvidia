@@ -89,8 +89,8 @@ http://localhost:8080
 ├── ComfyUI/                 # ComfyUI installation
 │   ├── venv/               # Python virtual environment
 │   └── ...
-├── open-webui/             # OpenWebUI installation
-│   ├── venv/               # Python virtual environment
+├── openwebui-env/          # OpenWebUI Python environment
+│   ├── bin/open-webui      # OpenWebUI executable
 │   └── ...
 ├── launch_comfyui.sh       # ComfyUI launcher script
 └── launch_openwebui.sh     # OpenWebUI launcher script
@@ -110,7 +110,8 @@ http://localhost:8080
 
 ### OpenWebUI Issues
 - Check if Ollama is running: `curl http://localhost:11434/api/version`
-- Check Python environment: `~/ai-tools/open-webui/venv/bin/python --version`
+- Check Python environment: `~/ai-tools/openwebui-env/bin/python --version`
+- Test manual launch: `~/ai-tools/launch_openwebui.sh`
 - View service logs: `journalctl --user -u openwebui -f`
 
 ## GPU Support

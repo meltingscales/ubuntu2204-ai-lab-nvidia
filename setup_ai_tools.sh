@@ -78,8 +78,8 @@ check_if_already_installed() {
         already_installed=1
     fi
     
-    if [ -d "$HOME/ai-tools/open-webui" ]; then
-        info "✓ OpenWebUI directory found"
+    if [ -d "$HOME/ai-tools/openwebui-env" ] && [ -f "$HOME/ai-tools/openwebui-env/bin/open-webui" ]; then
+        info "✓ OpenWebUI installation found"
         already_installed=1
     fi
     
@@ -374,8 +374,8 @@ Wants=ollama.service
 
 [Service]
 Type=simple
-WorkingDirectory=$HOME/ai-tools/open-webui
-ExecStart=$HOME/ai-tools/open-webui/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8080
+WorkingDirectory=$HOME/ai-tools
+ExecStart=$HOME/ai-tools/openwebui-env/bin/open-webui serve --host 0.0.0.0 --port 8080
 Environment=OLLAMA_BASE_URL=http://localhost:11434
 Restart=always
 RestartSec=5
