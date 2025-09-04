@@ -162,26 +162,58 @@ install_comfyui() {
     
     source venv/bin/activate
     
-    # Install PyTorch CPU version
-    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    # Check for GPU (NVIDIA or AMD)
+    local has_gpu=0
+    local gpu_type="none"
+    
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+        has_gpu=1
+        gpu_type="nvidia"
+        info "NVIDIA GPU detected, installing CUDA-enabled PyTorch"
+        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    elif lspci | grep -i amd | grep -i vga >/dev/null 2>&1; then
+        has_gpu=1
+        gpu_type="amd"
+        info "AMD GPU detected, installing ROCm-enabled PyTorch"
+        # Install ROCm PyTorch (for AMD GPUs)
+        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.6
+    else
+        info "No compatible GPU detected, installing CPU-only PyTorch"
+        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    fi
     
     # Install ComfyUI requirements
     if [ -f "requirements.txt" ]; then
         uv pip install -r requirements.txt
     else
         # Install common ComfyUI dependencies if requirements.txt doesn't exist
-        uv pip install pillow numpy opencv-python psutil scipy tqdm
+        uv pip install pillow "numpy<2.0" opencv-python psutil scipy tqdm
     fi
+    
+    # Fix NumPy compatibility issues with PyTorch
+    info "Ensuring NumPy compatibility..."
+    uv pip install "numpy<2.0"
     
     deactivate
     
-    # Create launcher script
-    cat > "$install_dir/launch_comfyui.sh" << 'EOF'
+    # Create launcher script with GPU/CPU detection
+    if [ $has_gpu -eq 1 ]; then
+        info "Creating GPU-enabled launcher script for $gpu_type GPU"
+        cat > "$install_dir/launch_comfyui.sh" << 'EOF'
 #!/bin/bash
 cd "$HOME/ai-tools/ComfyUI"
 source venv/bin/activate
 python main.py "$@"
 EOF
+    else
+        info "Creating CPU-only launcher script"
+        cat > "$install_dir/launch_comfyui.sh" << 'EOF'
+#!/bin/bash
+cd "$HOME/ai-tools/ComfyUI"
+source venv/bin/activate
+python main.py --cpu "$@"
+EOF
+    fi
     
     chmod +x "$install_dir/launch_comfyui.sh"
     

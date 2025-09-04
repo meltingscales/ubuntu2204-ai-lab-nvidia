@@ -119,16 +119,29 @@ http://localhost:8080
 
 ## GPU Support
 
-The current setup installs CPU-only versions. For GPU acceleration:
+The setup script automatically detects your GPU and installs the appropriate PyTorch version:
 
-1. Install NVIDIA drivers and CUDA toolkit
-2. Reinstall PyTorch with CUDA support:
-   ```bash
-   cd ~/ai-tools/ComfyUI
-   source venv/bin/activate
-   pip uninstall torch torchvision torchaudio
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-   ```
+### Automatic Detection
+- **NVIDIA GPUs**: Installs CUDA-enabled PyTorch (cu118)
+- **AMD GPUs**: Installs ROCm-enabled PyTorch (rocm5.6) 
+- **No GPU/Other**: Installs CPU-only PyTorch
+
+### Manual GPU Setup
+If you need to change GPU support later:
+
+**For NVIDIA GPU:**
+```bash
+cd ~/ai-tools/ComfyUI && source venv/bin/activate
+uv pip uninstall torch torchvision torchaudio
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+**For AMD GPU:**
+```bash
+cd ~/ai-tools/ComfyUI && source venv/bin/activate
+uv pip uninstall torch torchvision torchaudio
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.6
+```
 
 ## Security Notes
 

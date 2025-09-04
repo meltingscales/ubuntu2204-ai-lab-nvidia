@@ -237,6 +237,57 @@ install_ai_ml_dependencies() {
     log "AI/ML dependencies installed"
 }
 
+install_rocm_drivers() {
+    log "Installing ROCm drivers for AMD GPU..."
+    
+    # Check if AMD GPU is present
+    if ! lspci | grep -i amd | grep -i vga >/dev/null 2>&1; then
+        info "No AMD GPU detected, skipping ROCm installation"
+        return 0
+    fi
+    
+    # Check if ROCm is already installed
+    if [ -f /opt/rocm/bin/rocm-smi ]; then
+        info "ROCm appears to already be installed"
+        /opt/rocm/bin/rocm-smi --version 2>/dev/null || true
+        return 0
+    fi
+    
+    info "AMD GPU detected, installing ROCm drivers using AMD's installer..."
+    
+    # ROCm version compatible with PyTorch
+    local rocm_version="5.4.50402"
+    local installer_file="amdgpu-install_${rocm_version}-1_all.deb"
+    
+    # Download AMD GPU installer
+    if [ ! -f "$installer_file" ]; then
+        info "Downloading AMD GPU installer..."
+        wget "https://repo.radeon.com/amdgpu-install/5.4.2/ubuntu/jammy/$installer_file"
+    fi
+    
+    # Install the AMD GPU installer
+    info "Installing AMD GPU installer..."
+    sudo apt install -y "./$installer_file"
+    
+    # Install ROCm with all necessary components
+    info "Installing ROCm packages (this will take several minutes)..."
+    sudo amdgpu-install --usecase=graphics,multimedia,opencl,hip,hiplibsdk,rocm
+    
+    # Add user to render and video groups
+    info "Adding user to render and video groups..."
+    sudo usermod -a -G render,video "$USER"
+    
+    # Add ROCm to PATH
+    if ! grep -q "/opt/rocm/bin" "$HOME/.bashrc"; then
+        echo 'export PATH="/opt/rocm/bin:$PATH"' >> "$HOME/.bashrc"
+        info "Added /opt/rocm/bin to PATH in .bashrc"
+    fi
+    
+    log "ROCm installation completed"
+    warn "You MUST reboot for ROCm drivers and group changes to take effect"
+    info "After reboot, verify with: /opt/rocm/bin/rocm-smi"
+}
+
 install_optional_tools() {
     log "Installing optional development tools..."
     
@@ -288,6 +339,9 @@ verify_installation() {
     info "  npm: $(npm --version)"
     info "  Git: $(git --version)"
     info "  FFmpeg: $(ffmpeg -version | head -1)"
+    if [ -f /opt/rocm/bin/rocm-smi ]; then
+        info "  ROCm: $(/opt/rocm/bin/rocm-smi --version 2>/dev/null | head -1 || echo 'Installed but needs reboot')"
+    fi
     
     log "Installation verification completed"
 }
@@ -303,12 +357,18 @@ main() {
     install_nodejs
     install_multimedia_libs
     install_ai_ml_dependencies
+    install_rocm_drivers
     install_optional_tools
     configure_environment
     verify_installation
     
     log "Dependencies setup completed successfully!"
     info "Please run 'source ~/.bashrc' or restart your terminal to apply PATH changes"
+    
+    # Check if reboot is recommended
+    if lspci | grep -i amd | grep -i vga >/dev/null 2>&1 && command -v rocm-smi >/dev/null 2>&1; then
+        warn "ROCm drivers were installed. Please reboot to ensure AMD GPU is fully accessible."
+    fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
