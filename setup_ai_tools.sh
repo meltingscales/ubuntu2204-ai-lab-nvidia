@@ -162,15 +162,24 @@ install_comfyui() {
     
     source venv/bin/activate
     
-    # Check for GPU (NVIDIA preferred for T4)
+    # Check for GPU and detect specific model
     local has_gpu=0
     local gpu_type="none"
+    local cuda_version="cu121"
     
     if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
         has_gpu=1
         gpu_type="nvidia"
-        info "NVIDIA GPU detected, installing CUDA-enabled PyTorch for T4"
-        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        
+        # Check for RTX 5090 specifically
+        if nvidia-smi --query-gpu=name --format=csv,noheader,nounits | grep -i "rtx.*5090" >/dev/null 2>&1; then
+            info "NVIDIA GeForce RTX 5090 detected, installing CUDA 12.4-enabled PyTorch"
+            cuda_version="cu124"
+            uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+        else
+            info "NVIDIA GPU detected, installing CUDA 12.1-enabled PyTorch"
+            uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        fi
     else
         info "No NVIDIA GPU detected, installing CPU-only PyTorch"
         uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
@@ -184,6 +193,14 @@ install_comfyui() {
         uv pip install pillow "numpy<2.0" opencv-python psutil scipy tqdm
     fi
     
+    # Install additional dependencies for RTX 5090 optimization
+    if [ $has_gpu -eq 1 ] && [[ $cuda_version == "cu124" ]]; then
+        info "Installing RTX 5090 optimizations..."
+        uv pip install xformers
+        uv pip install accelerate
+        uv pip install transformers
+    fi
+    
     # Fix NumPy compatibility issues with PyTorch
     info "Ensuring NumPy compatibility..."
     uv pip install "numpy<2.0"
@@ -192,20 +209,40 @@ install_comfyui() {
     
     # Create launcher script with GPU/CPU detection
     if [ $has_gpu -eq 1 ]; then
-        info "Creating GPU-enabled launcher script for $gpu_type GPU"
-        cat > "$install_dir/launch_comfyui.sh" << 'EOF'
+        if [[ $cuda_version == "cu124" ]]; then
+            info "Creating RTX 5090 optimized launcher script"
+            cat > "$install_dir/launch_comfyui.sh" << 'EOF'
 #!/bin/bash
 cd "$HOME/ai-tools/ComfyUI"
 source venv/bin/activate
-python main.py "$@"
+# RTX 5090 specific optimizations
+export CUDA_VISIBLE_DEVICES=0
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024,garbage_collection_threshold:0.8
+export CUDA_MODULE_LOADING=LAZY
+export PYTORCH_JIT=0
+# Enable xformers and flash attention for better performance
+export XFORMERS_FORCE_DISABLE_TRITON=1
+python main.py --enable-cors-header --listen 0.0.0.0 --port 8188 "$@"
 EOF
+        else
+            info "Creating GPU-enabled launcher script for $gpu_type GPU ($cuda_version)"
+            cat > "$install_dir/launch_comfyui.sh" << 'EOF'
+#!/bin/bash
+cd "$HOME/ai-tools/ComfyUI"
+source venv/bin/activate
+# Set CUDA environment variables for GPU performance
+export CUDA_VISIBLE_DEVICES=0
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+python main.py --enable-cors-header --listen 0.0.0.0 --port 8188 "$@"
+EOF
+        fi
     else
         info "Creating CPU-only launcher script"
         cat > "$install_dir/launch_comfyui.sh" << 'EOF'
 #!/bin/bash
 cd "$HOME/ai-tools/ComfyUI"
 source venv/bin/activate
-python main.py --cpu "$@"
+python main.py --cpu --enable-cors-header --listen 0.0.0.0 --port 8188 "$@"
 EOF
     fi
     
@@ -250,12 +287,14 @@ pull_ollama_models(){
         ((attempt++))
     done
     
-    # Array of models to download
+    # Array of models to download - optimized for RTX 5090's 24GB VRAM
     local models=(
         "llama3.2:3b"
-        "yuiseki/devstral-small-2507:24b"
-        "hf.co/bartowski/Qwen2.5-Coder-14B-Instruct-abliterated-GGUF:Q4_K_S"
+        "qwen2.5-coder:14b"
+        "gemma2:27b"
+        "mixtral:8x7b"
         "hf.co/mlabonne/gemma-3-27b-it-abliterated-GGUF:Q4_K_M"
+        "llama3.1:70b"
     )
     
     info "Downloading ${#models[@]} models. This may take a while..."
@@ -447,7 +486,7 @@ print_usage_info() {
     info "  - List models: ollama list"
     info "  - Download more models: ollama pull <model_name>"
     info "  - API: http://localhost:11434"
-    info "  - Pre-installed models: llama3.2:3b, devstral-small, qwen2.5-coder, gemma-3"
+    info "  - Pre-installed models: llama3.2:3b, qwen2.5-coder:14b, gemma2:27b, mixtral:8x7b, gemma-3-27b-abliterated, llama3.1:70b"
     echo ""
     info "Open WebUI:"
     info "  - Launch: $HOME/ai-tools/launch_openwebui.sh"

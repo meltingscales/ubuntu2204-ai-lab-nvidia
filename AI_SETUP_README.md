@@ -40,11 +40,13 @@ This repository contains scripts to set up ComfyUI, Ollama, and OpenWebUI on Ubu
 - Systemd services for auto-start
 
 #### Pre-installed Models
-The script automatically downloads these models:
+The script automatically downloads these models optimized for RTX 5090's 24GB VRAM:
 - `llama3.2:3b` - Fast general-purpose model
-- `yuiseki/devstral-small-2507:24b` - Development-focused model
-- `hf.co/bartowski/Qwen2.5-Coder-14B-Instruct-abliterated-GGUF:Q4_K_S` - Code generation
-- `hf.co/mlabonne/gemma-3-27b-it-abliterated-GGUF:Q4_K_M` - Large instruction model
+- `qwen2.5-coder:14b` - Advanced code generation model
+- `gemma2:27b` - Large instruction-following model
+- `mixtral:8x7b` - High-performance mixture-of-experts model
+- `hf.co/mlabonne/gemma-3-27b-it-abliterated-GGUF:Q4_K_M` - Uncensored large instruction model
+- `llama3.1:70b` - Large language model for complex tasks
 
 ## Usage
 
@@ -122,13 +124,21 @@ http://localhost:8080
 The setup script automatically detects your GPU and installs the appropriate PyTorch version:
 
 ### Automatic Detection
-- **NVIDIA T4 GPU**: Installs CUDA-enabled PyTorch (cu121)
+- **NVIDIA GeForce RTX 5090**: Installs CUDA-enabled PyTorch (cu124)
+- **Other NVIDIA GPUs**: Installs CUDA-enabled PyTorch (cu121)
 - **No GPU/Other**: Installs CPU-only PyTorch
 
 ### Manual GPU Setup
 If you need to change GPU support later:
 
-**For NVIDIA T4 GPU:**
+**For NVIDIA GeForce RTX 5090:**
+```bash
+cd ~/ai-tools/ComfyUI && source venv/bin/activate
+uv pip uninstall torch torchvision torchaudio
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+```
+
+**For Other NVIDIA GPUs:**
 ```bash
 cd ~/ai-tools/ComfyUI && source venv/bin/activate
 uv pip uninstall torch torchvision torchaudio
@@ -151,10 +161,10 @@ uv pip install torch torchvision torchaudio --index-url https://download.pytorch
 
 ## Requirements
 
-- Ubuntu 22.04 LTS
-- GCP n1-standard-4 instance (4 vCPUs, 15GB RAM)
-- NVIDIA Tesla T4 GPU
-- 50GB persistent disk space
+- Ubuntu 22.04.5 LTS
+- NVIDIA GeForce RTX 5090 GPU (24GB VRAM recommended)
+- Sufficient RAM (32GB+ recommended for large models)
+- 100GB+ storage space for models and cache
 - Internet connection for downloads
 
 **Note**: All Python version requirements are automatically managed by `uv` - no manual Python version management needed!

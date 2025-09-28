@@ -238,7 +238,7 @@ install_ai_ml_dependencies() {
 }
 
 install_nvidia_drivers() {
-    log "Installing NVIDIA drivers for Tesla T4 GPU..."
+    log "Installing NVIDIA drivers for GeForce RTX 5090..."
     
     # Check if NVIDIA GPU is present
     if ! lspci | grep -i nvidia >/dev/null 2>&1; then
@@ -255,17 +255,21 @@ install_nvidia_drivers() {
     
     info "NVIDIA GPU detected, installing NVIDIA drivers..."
     
-    # Add NVIDIA package repository
+    # Add NVIDIA package repository for CUDA 12.4
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
     sudo dpkg -i cuda-keyring_1.1-1_all.deb
     sudo apt update
     
-    # Install NVIDIA driver and CUDA toolkit
-    info "Installing NVIDIA driver and CUDA toolkit (this will take several minutes)..."
-    sudo apt install -y nvidia-driver-535 cuda-toolkit-12-2
+    # Install latest NVIDIA driver and CUDA 12.4 toolkit for RTX 5090
+    info "Installing NVIDIA driver and CUDA 12.4 toolkit (this will take several minutes)..."
+    sudo apt install -y nvidia-driver-550 cuda-toolkit-12-4
     
     # Install additional CUDA development packages
-    sudo apt install -y cuda-drivers-535 libnvidia-compute-535
+    sudo apt install -y cuda-drivers-550 libnvidia-compute-550
+    
+    # Install cuDNN for deep learning frameworks
+    info "Installing cuDNN for deep learning support..."
+    sudo apt install -y libcudnn8 libcudnn8-dev
     
     log "NVIDIA driver installation completed"
     warn "You MUST reboot for NVIDIA drivers to take effect"

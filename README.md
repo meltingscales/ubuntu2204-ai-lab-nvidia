@@ -1,9 +1,9 @@
-# Ubuntu 22.04 AI Lab
+# Ubuntu 22.04.5 LTS AI Lab
 
 ## note
 
-Configured for GCP deployment with NVIDIA T4 GPU on n1-standard-4 instance.
+Configured for Ubuntu 22.04.5 LTS with NVIDIA GeForce RTX 5090 GPU for high-performance AI workloads.
 
 ## specs
 
-Instance Type: n1-standard-4; CPU Cores: 4; RAM Total: 15GB; GPU Vendor: NVIDIA; GPU Model: Tesla T4;
+OS: Ubuntu 22.04.5 LTS; GPU Vendor: NVIDIA; GPU Model: GeForce RTX 5090; CUDA Compute Capability: 8.9;
