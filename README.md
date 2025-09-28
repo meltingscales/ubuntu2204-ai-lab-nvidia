@@ -2,8 +2,8 @@
 
 ## note
 
-NOT WORKING! ROCM amd drivers on Ubuntu suck so I'll try Debian 12 and then Gentoo if that fails.
+Configured for GCP deployment with NVIDIA T4 GPU on n1-standard-4 instance.
 
 ## specs
 
-CPU Model: model name   : Intel(R) Xeon(R) CPU E5-2699 v3 @ 2.30GHz; CPU Cores: 72; RAM Total: 251Gi; RAM Used: 8.9Gi; GPU Vendor: compatible; GPU Model: AMD Radeon RX 7900 XTX;
+Instance Type: n1-standard-4; CPU Cores: 4; RAM Total: 15GB; GPU Vendor: NVIDIA; GPU Model: Tesla T4;

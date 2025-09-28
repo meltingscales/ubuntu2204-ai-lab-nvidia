@@ -237,55 +237,39 @@ install_ai_ml_dependencies() {
     log "AI/ML dependencies installed"
 }
 
-install_rocm_drivers() {
-    log "Installing ROCm drivers for AMD GPU..."
+install_nvidia_drivers() {
+    log "Installing NVIDIA drivers for Tesla T4 GPU..."
     
-    # Check if AMD GPU is present
-    if ! lspci | grep -i amd | grep -i vga >/dev/null 2>&1; then
-        info "No AMD GPU detected, skipping ROCm installation"
+    # Check if NVIDIA GPU is present
+    if ! lspci | grep -i nvidia >/dev/null 2>&1; then
+        info "No NVIDIA GPU detected, skipping NVIDIA driver installation"
         return 0
     fi
     
-    # Check if ROCm is already installed
-    if [ -f /opt/rocm/bin/rocm-smi ]; then
-        info "ROCm appears to already be installed"
-        /opt/rocm/bin/rocm-smi --version 2>/dev/null || true
+    # Check if NVIDIA drivers are already installed
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+        info "NVIDIA drivers appear to already be installed"
+        nvidia-smi --version 2>/dev/null || true
         return 0
     fi
     
-    info "AMD GPU detected, installing ROCm drivers using AMD's installer..."
+    info "NVIDIA GPU detected, installing NVIDIA drivers..."
     
-    # ROCm version compatible with PyTorch
-    local rocm_version="5.4.50402"
-    local installer_file="amdgpu-install_${rocm_version}-1_all.deb"
+    # Add NVIDIA package repository
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+    sudo dpkg -i cuda-keyring_1.1-1_all.deb
+    sudo apt update
     
-    # Download AMD GPU installer
-    if [ ! -f "$installer_file" ]; then
-        info "Downloading AMD GPU installer..."
-        wget "https://repo.radeon.com/amdgpu-install/5.4.2/ubuntu/jammy/$installer_file"
-    fi
+    # Install NVIDIA driver and CUDA toolkit
+    info "Installing NVIDIA driver and CUDA toolkit (this will take several minutes)..."
+    sudo apt install -y nvidia-driver-535 cuda-toolkit-12-2
     
-    # Install the AMD GPU installer
-    info "Installing AMD GPU installer..."
-    sudo apt install -y "./$installer_file"
+    # Install additional CUDA development packages
+    sudo apt install -y cuda-drivers-535 libnvidia-compute-535
     
-    # Install ROCm with all necessary components
-    info "Installing ROCm packages (this will take several minutes)..."
-    sudo amdgpu-install --usecase=graphics,multimedia,opencl,hip,hiplibsdk,rocm
-    
-    # Add user to render and video groups
-    info "Adding user to render and video groups..."
-    sudo usermod -a -G render,video "$USER"
-    
-    # Add ROCm to PATH
-    if ! grep -q "/opt/rocm/bin" "$HOME/.bashrc"; then
-        echo 'export PATH="/opt/rocm/bin:$PATH"' >> "$HOME/.bashrc"
-        info "Added /opt/rocm/bin to PATH in .bashrc"
-    fi
-    
-    log "ROCm installation completed"
-    warn "You MUST reboot for ROCm drivers and group changes to take effect"
-    info "After reboot, verify with: /opt/rocm/bin/rocm-smi"
+    log "NVIDIA driver installation completed"
+    warn "You MUST reboot for NVIDIA drivers to take effect"
+    info "After reboot, verify with: nvidia-smi"
 }
 
 install_optional_tools() {
@@ -339,8 +323,8 @@ verify_installation() {
     info "  npm: $(npm --version)"
     info "  Git: $(git --version)"
     info "  FFmpeg: $(ffmpeg -version | head -1)"
-    if [ -f /opt/rocm/bin/rocm-smi ]; then
-        info "  ROCm: $(/opt/rocm/bin/rocm-smi --version 2>/dev/null | head -1 || echo 'Installed but needs reboot')"
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        info "  NVIDIA: $(nvidia-smi --version 2>/dev/null | head -1 || echo 'Installed but needs reboot')"
     fi
     
     log "Installation verification completed"
@@ -357,7 +341,7 @@ main() {
     install_nodejs
     install_multimedia_libs
     install_ai_ml_dependencies
-    install_rocm_drivers
+    install_nvidia_drivers
     install_optional_tools
     configure_environment
     verify_installation
@@ -366,8 +350,8 @@ main() {
     info "Please run 'source ~/.bashrc' or restart your terminal to apply PATH changes"
     
     # Check if reboot is recommended
-    if lspci | grep -i amd | grep -i vga >/dev/null 2>&1 && command -v rocm-smi >/dev/null 2>&1; then
-        warn "ROCm drivers were installed. Please reboot to ensure AMD GPU is fully accessible."
+    if lspci | grep -i nvidia >/dev/null 2>&1 && command -v nvidia-smi >/dev/null 2>&1; then
+        warn "NVIDIA drivers were installed. Please reboot to ensure GPU is fully accessible."
     fi
 }
 

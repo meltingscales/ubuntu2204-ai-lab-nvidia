@@ -122,25 +122,24 @@ http://localhost:8080
 The setup script automatically detects your GPU and installs the appropriate PyTorch version:
 
 ### Automatic Detection
-- **NVIDIA GPUs**: Installs CUDA-enabled PyTorch (cu118)
-- **AMD GPUs**: Installs ROCm-enabled PyTorch (rocm5.6) 
+- **NVIDIA T4 GPU**: Installs CUDA-enabled PyTorch (cu121)
 - **No GPU/Other**: Installs CPU-only PyTorch
 
 ### Manual GPU Setup
 If you need to change GPU support later:
 
-**For NVIDIA GPU:**
+**For NVIDIA T4 GPU:**
 ```bash
 cd ~/ai-tools/ComfyUI && source venv/bin/activate
 uv pip uninstall torch torchvision torchaudio
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-**For AMD GPU:**
+**For CPU-only:**
 ```bash
 cd ~/ai-tools/ComfyUI && source venv/bin/activate
 uv pip uninstall torch torchvision torchaudio
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.6
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
 
 ## Security Notes
@@ -153,8 +152,9 @@ uv pip install torch torchvision torchaudio --index-url https://download.pytorch
 ## Requirements
 
 - Ubuntu 22.04 LTS
-- At least 8GB RAM (16GB recommended)
-- 20GB free disk space
+- GCP n1-standard-4 instance (4 vCPUs, 15GB RAM)
+- NVIDIA Tesla T4 GPU
+- 50GB persistent disk space
 - Internet connection for downloads
 
 **Note**: All Python version requirements are automatically managed by `uv` - no manual Python version management needed!

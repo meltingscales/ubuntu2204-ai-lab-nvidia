@@ -162,23 +162,17 @@ install_comfyui() {
     
     source venv/bin/activate
     
-    # Check for GPU (NVIDIA or AMD)
+    # Check for GPU (NVIDIA preferred for T4)
     local has_gpu=0
     local gpu_type="none"
     
     if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
         has_gpu=1
         gpu_type="nvidia"
-        info "NVIDIA GPU detected, installing CUDA-enabled PyTorch"
-        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-    elif lspci | grep -i amd | grep -i vga >/dev/null 2>&1; then
-        has_gpu=1
-        gpu_type="amd"
-        info "AMD GPU detected, installing ROCm-enabled PyTorch"
-        # Install ROCm PyTorch (for AMD GPUs)
-        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.6
+        info "NVIDIA GPU detected, installing CUDA-enabled PyTorch for T4"
+        uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
     else
-        info "No compatible GPU detected, installing CPU-only PyTorch"
+        info "No NVIDIA GPU detected, installing CPU-only PyTorch"
         uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     fi
     
